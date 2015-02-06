@@ -27,7 +27,7 @@ class Classifier {
 
     classifier.classify(sentence).toList.flatMap(x => x.toList)
       .map(word => (word.word(), word.get(classOf[CoreAnnotations.AnswerAnnotation])))
-      .filter({ case (word, category) => category != "O"})
+      .sliding(2).filter({case List(a,b) => a._2 != "O" && b._2 != "O" && a._2 == b._2}).map({case List((a,b),(c,d)) => (s"$a $c",b)}).toList
   }
 
 }
