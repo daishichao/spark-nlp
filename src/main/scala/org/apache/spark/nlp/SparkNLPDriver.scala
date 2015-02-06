@@ -1,18 +1,14 @@
 package org.apache.spark.nlp
 
-import java.util.concurrent.Executors
-
-import com.typesafe.config.{ Config, ConfigFactory }
-import edu.stanford.nlp.ling.CoreAnnotations
-import org.apache.spark.{ SparkContext, SparkConf }
+import com.typesafe.config.{Config, ConfigFactory}
 import org.apache.spark.SparkContext._
+import org.apache.spark.{SparkConf, SparkContext}
 
 class SparkNLPDriver extends Serializable {
   val conf: Config = ConfigFactory.load()
   val jar = this.getClass.getProtectionDomain.getCodeSource.getLocation.toURI.toString
 
   def run(args: Array[String]) = {
-    val executor = Executors.newFixedThreadPool(1)
 
     val sparkConf = new SparkConf()
       .setMaster("local[2]")
@@ -24,19 +20,19 @@ class SparkNLPDriver extends Serializable {
     val articlesRDD = sc.wholeTextFiles("/Users/tristan/Downloads/articles/")
 
     val splitSentences = articlesRDD.flatMap(
-      {case (fileName, content) =>
-        val sentences = NLPTools.parser.splitSentences(content)
+    { case (fileName, content) =>
+      val sentences = NLPTools.parser.splitSentences(content)
 
-        sentences.map(x => (fileName, x))
+      sentences.map(x => (fileName, x))
 
-      })
+    })
 
-    val entities = splitSentences.map({case (fileName, content) => (fileName, NLPTools.classifier.getEntities(content.map(_.word()).mkString(" ")))})
+    val entities = splitSentences.map({ case (fileName, content) => (fileName, NLPTools.classifier.getEntities(content.map(_.word()).mkString(" ")))})
       .flatMap({ case (fileName, list) => list.map(x => (fileName, x))}).groupByKey
 
-     entities.take(100).foreach(println)
+    entities.take(100).foreach(println)
 
-      sc.stop()
+    sc.stop()
   }
 
 }

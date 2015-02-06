@@ -8,6 +8,7 @@ import edu.stanford.nlp.parser.lexparser.LexicalizedParser
 import edu.stanford.nlp.process.{CoreLabelTokenFactory, DocumentPreprocessor, PTBTokenizer}
 import edu.stanford.nlp.trees.Tree
 
+import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 
 object NLPTools {
@@ -23,11 +24,27 @@ object NLPTools {
 class Classifier {
   lazy val classifier = CRFClassifier.getClassifier(NLPTools.CLASSIFIER_FILE)
 
-  def getEntities(sentence: String): List[(String, String)] = {
+  def getEntities(sentence: String) = {
 
-    classifier.classify(sentence).toList.flatMap(x => x.toList)
+    val labels = classifier.classify(sentence).toList.flatMap(x => x.toList)
       .map(word => (word.word(), word.get(classOf[CoreAnnotations.AnswerAnnotation])))
-      .sliding(2).filter({case List(a,b) => a._2 != "O" && b._2 != "O" && a._2 == b._2}).map({case List((a,b),(c,d)) => (s"$a $c",b)}).toList
+    getSpans(labels).map(l => (l.reverse.map(x => x._1).mkString(" "), l(0)._2)).filter(_._2 != "O").reverse
+  }
+
+
+  def getSpans(labels: List[(String, String)]): List[List[(String,String)]] = {
+    @tailrec
+    def recurse(remainingList:List[(String, String)], currentSpan: List[(String, String)], allSpans:List[List[(String, String)]]):List[List[(String,String)]] = {
+      remainingList match {
+        case Nil => currentSpan:: allSpans
+        case (word, annotation) :: tail => currentSpan match {
+          case (w, a) :: tail2 if a == annotation => recurse(tail, (word,annotation) :: currentSpan, allSpans)
+          case term :: tail2 => recurse(tail, List((word, annotation)), currentSpan :: allSpans)
+          case Nil => recurse(tail, List((word, annotation)), allSpans)
+        }
+      }
+    }
+    recurse(labels, List(), List())
   }
 
 }
