@@ -1,8 +1,5 @@
 import AssemblyKeys._
 
-//
-// http://spark.apache.org/docs/latest/quick-start.html#a-standalone-app-in-scala
-//
 name := """spark-nlp"""
 
 scalaVersion := "2.10.4"
